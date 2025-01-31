@@ -1,0 +1,8 @@
+=============================================================
+== Test 4: List - Get Command
+== Checks that the ~get N~ command works correct to return
+== value at Nth index of the list.
+Running test...
+Expected output is in file 'test_results/raw/lab_01-4-expected.tmp'
+Actual output is in file 'test_results/raw/lab_01-4-actual.tmp'
+Test PASSED
