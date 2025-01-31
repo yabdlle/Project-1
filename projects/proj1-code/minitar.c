@@ -132,7 +132,7 @@ int create_archive(const char *archive_name, const file_list_t *files) {
 }
 
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    if (file == NULL || files->size == NULL) {
+    if (files == NULL || files->size == NULL) {
         return -1;
     }
     return 0;
