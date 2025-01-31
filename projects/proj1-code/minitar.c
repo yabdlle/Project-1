@@ -124,58 +124,24 @@ int remove_trailing_bytes(const char *file_name, size_t nbytes) {
 }
 
 int create_archive(const char *archive_name, const file_list_t *files) {
-    // Open the archive file
-    FILE *archive = fopen(archive_name, "wb");
-    if (!archive) {
-        perror("Failed to create archive");
+    // Check if we have a file before we create archive
+    if (files == NULL || files->size == NULL) {
         return -1;
     }
-
-    // Loop through the files and add them to the archive
-    node_t *current = files->head;    // Start at the head of the linked list
-    while (current != NULL) {
-        const char *file_name = current->name;
-
-        // Read file and add to archive (simplified)
-        FILE *file = fopen(file_name, "rb");
-        if (!file) {
-            perror("Failed to open file");
-            fclose(archive);
-            return -1;
-        }
-
-        // Write the file name to the archive (for simplicity, we'll write just the name)
-        size_t name_len = strlen(file_name);
-        fwrite(file_name, sizeof(char), name_len, archive);
-        // Padding to align file name to a multiple of 512 bytes (common in tar)
-        size_t padding = 512 - (name_len % 512);
-        if (padding != 512) {
-            char padding_buffer[512] = {0};    // Clear padding buffer
-            fwrite(padding_buffer, sizeof(char), padding, archive);
-        }
-
-        // Write the file contents to the archive
-        char buffer[512];    // Temporary buffer for reading file chunks
-        size_t bytes_read;
-        while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-            fwrite(buffer, 1, bytes_read, archive);
-        }
-
-        fclose(file);
-        current = current->next;    // Move to the next file in the list
-    }
-
-    fclose(archive);
     return 0;
 }
 
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    // TODO: Not yet implemented
+    if (file == NULL || files->size == NULL) {
+        return -1;
+    }
     return 0;
 }
 
 int get_archive_file_list(const char *archive_name, file_list_t *files) {
-    // TODO: Not yet implemented
+    if (files == NULL) {
+        return -1;
+    }
     return 0;
 }
 
