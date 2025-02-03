@@ -15,7 +15,6 @@ int main(int argc, char **argv) {
 
     // TODO: Parse command-line arguments and invoke functions from 'minitar.h'
     // to execute archive ops
-
     char *op = argv[1];
     char *archive_name = argv[3];
 
@@ -34,7 +33,7 @@ int main(int argc, char **argv) {
             file_list_clear(&files);
             return 1;
         }
-        printf("Archive created successfully.\n");
+        printf("Archive created successfully\n");
 
     } else if (strcmp(op, "-a") == 0) {
         if (!files.head) {
@@ -55,17 +54,18 @@ int main(int argc, char **argv) {
 
         if (get_archive_file_list(archive_name, &archive_files) == -1) {
             printf("Error: Failed to read archive '%s'.\n", archive_name);
-            file_list_clear(&files);
+            file_list_clear(&archive_files);    // Free memory
             return 1;
         }
 
-        printf("Files in archive '%s':\n", archive_name);
-        for (node_t *current = archive_files.head; current; current = current->next) {
+        printf("Files in archive '%s':\n", archive_name);    // Corrected printf statement
+        node_t *current = archive_files.head;
+        while (current != NULL) {
             printf("  %s\n", current->name);
+            current = current->next;
         }
 
         file_list_clear(&archive_files);
-
     } else if (strcmp(op, "-u") == 0) {
         if (!files.head) {
             printf("Error: No files provided to update.\n");
@@ -97,7 +97,6 @@ int main(int argc, char **argv) {
 
         printf("Files updated successfully.\n");
         file_list_clear(&archive_files);
-
     } else if (strcmp(op, "-x") == 0) {
         if (extract_files_from_archive(archive_name) == -1) {
             printf("Error: Failed to extract files from archive '%s'.\n", archive_name);
@@ -105,10 +104,11 @@ int main(int argc, char **argv) {
         }
         printf("Files extracted successfully.\n");
     } else {
-        printf("Unknown command, try again");
+        printf("Unknown command, try again\n");
         file_list_clear(&files);
         return 1;
     }
+
     file_list_clear(&files);
     return 0;
 }

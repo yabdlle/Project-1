@@ -123,25 +123,74 @@ int remove_trailing_bytes(const char *file_name, size_t nbytes) {
     return 0;
 }
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "file_list.h"
+#include "minitar.h"
+
 int create_archive(const char *archive_name, const file_list_t *files) {
-    // Check if we have a file before we create archive
-    if (files == NULL || files->size == 0) {
+    if (!files || !files->head) {
+        return -1;    // No files to archive
+    }
+
+    // Open the archive file for writing in binary mode
+    FILE *archive = fopen(archive_name, "wb");
+    if (!archive) {
+        perror("Error opening archive file for writing");
         return -1;
     }
-    return 0;
+
+    // Iterate through the list of files
+    node_t *current = files->head;
+    while (current) {
+        tar_header header;
+
+        // Generate the header for the current file
+        if (fill_tar_header(&header, current->name) == -1) {
+            fclose(archive);
+            return -1;
+        }
+
+        // Write the header to the archive
+        fwrite(&header, sizeof(tar_header), 1, archive);
+
+        // Open the file for reading in binary mode
+        FILE *file = fopen(current->name, "rb");
+        if (!file) {
+            perror("Error opening input file");
+            fclose(archive);
+            return -1;
+        }
+
+        // Read and write the file contents in chunks of BLOCK_SIZE
+        char buffer[BLOCK_SIZE];
+        size_t bytes_read;
+        while ((bytes_read = fread(buffer, 1, BLOCK_SIZE, file)) > 0) {
+            fwrite(buffer, 1, bytes_read, archive);
+        }
+
+        fclose(file);
+        current = current->next;    // Move to the next file in the list
+    }
+
+    // Add the two-block footer with zeroes to mark the end of the archive
+    char footer[BLOCK_SIZE * 2] = {0};
+    fwrite(footer, BLOCK_SIZE, 2, archive);
+
+    fclose(archive);    // Close the archive file
+
+    return 0;    // Success
 }
 
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    if (files == NULL || files->size == 0) {
-        return -1;
-    }
+    // TODO: Not yet implemented
     return 0;
 }
 
 int get_archive_file_list(const char *archive_name, file_list_t *files) {
-    if (files == NULL) {
-        return -1;
-    }
+    // TODO: Not yet implemented
     return 0;
 }
 
