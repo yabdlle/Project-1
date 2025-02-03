@@ -33,7 +33,6 @@ int main(int argc, char **argv) {
             file_list_clear(&files);
             return 1;
         }
-        printf("Archive created successfully\n");
 
     } else if (strcmp(op, "-a") == 0) {
         if (!files.head) {
