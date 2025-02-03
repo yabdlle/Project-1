@@ -125,14 +125,14 @@ int remove_trailing_bytes(const char *file_name, size_t nbytes) {
 
 int create_archive(const char *archive_name, const file_list_t *files) {
     // Check if we have a file before we create archive
-    if (files == NULL || files->size == NULL) {
+    if (files == NULL || files->size == 0) {
         return -1;
     }
     return 0;
 }
 
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    if (files == NULL || files->size == NULL) {
+    if (files == NULL || files->size == 0) {
         return -1;
     }
     return 0;
