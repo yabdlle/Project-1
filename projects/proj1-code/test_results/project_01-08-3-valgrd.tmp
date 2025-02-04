@@ -1,0 +1,15 @@
+==85968== Memcheck, a memory error detector
+==85968== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==85968== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==85968== Command: ./minitar -a -f test.tar gatsby.txt
+==85968== Parent PID: 85665
+==85968== 
+==85968== 
+==85968== HEAP SUMMARY:
+==85968==     in use at exit: 0 bytes in 0 blocks
+==85968==   total heap usage: 2 allocs, 2 frees, 1,064 bytes allocated
+==85968== 
+==85968== All heap blocks were freed -- no leaks are possible
+==85968== 
+==85968== For lists of detected and suppressed errors, rerun with: -s
+==85968== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
