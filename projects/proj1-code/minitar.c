@@ -124,24 +124,17 @@ int remove_trailing_bytes(const char *file_name, size_t nbytes) {
 }
 
 int create_archive(const char *archive_name, const file_list_t *files) {
-    // Check if we have a file before we create archive
-    if (files == NULL || files->size == NULL) {
-        return -1;
-    }
+    // TODO: Not yet implemented
     return 0;
 }
 
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    if (files == NULL || files->size == NULL) {
-        return -1;
-    }
+    // TODO: Not yet implemented
     return 0;
 }
 
 int get_archive_file_list(const char *archive_name, file_list_t *files) {
-    if (files == NULL) {
-        return -1;
-    }
+    // TODO: Not yet implemented
     return 0;
 }
 
