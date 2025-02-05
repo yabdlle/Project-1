@@ -45,8 +45,7 @@ int main(int argc, char **argv) {
             file_list_clear(&files);
             return 1;
         }
-        printf("Files appended successfully.\n");
-
+        
     } else if (strcmp(op, "-t") == 0) {
         file_list_t archive_files;
         file_list_init(&archive_files);
