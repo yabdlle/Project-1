@@ -1,0 +1,96 @@
+FREAD(3)                                                      Linux Programmer's Manual                                                     FREAD(3)
+
+NNAAMMEE
+       fread, fwrite - binary stream input/output
+
+SSYYNNOOPPSSIISS
+       ##iinncclluuddee <<ssttddiioo..hh>>
+
+       ssiizzee__tt ffrreeaadd((vvooiidd **_p_t_r,, ssiizzee__tt _s_i_z_e,, ssiizzee__tt _n_m_e_m_b,, FFIILLEE **_s_t_r_e_a_m));;
+
+       ssiizzee__tt ffwwrriittee((ccoonnsstt vvooiidd **_p_t_r,, ssiizzee__tt _s_i_z_e,, ssiizzee__tt _n_m_e_m_b,,
+                     FFIILLEE **_s_t_r_e_a_m));;
+
+DDEESSCCRRIIPPTTIIOONN
+       The  function  ffrreeaadd()  reads  _n_m_e_m_b  items of data, each _s_i_z_e bytes long, from the stream pointed to by _s_t_r_e_a_m, storing them at the location
+       given by _p_t_r.
+
+       The function ffwwrriittee() writes _n_m_e_m_b items of data, each _s_i_z_e bytes long, to the stream pointed to by _s_t_r_e_a_m, obtaining them from the  location
+       given by _p_t_r.
+
+       For nonlocking counterparts, see uunnlloocckkeedd__ssttddiioo(3).
+
+RREETTUURRNN VVAALLUUEE
+       On  success,  ffrreeaadd()  and ffwwrriittee() return the number of items read or written.  This number equals the number of bytes transferred only when
+       _s_i_z_e is 1.  If an error occurs, or the end of the file is reached, the return value is a short item count (or zero).
+
+       The file position indicator for the stream is advanced by the number of bytes successfully read or written.
+
+       ffrreeaadd() does not distinguish between end-of-file and error, and callers must use ffeeooff(3) and ffeerrrroorr(3) to determine which occurred.
+
+AATTTTRRIIBBUUTTEESS
+       For an explanation of the terms used in this section, see aattttrriibbuutteess(7).
+
+       +------------------+---------------+---------+
+       |IInntteerrffaaccee         | AAttttrriibbuuttee     | VVaalluuee   |
+       +------------------+---------------+---------+
+       |ffrreeaadd(), ffwwrriittee() | Thread safety | MT-Safe |
+       +------------------+---------------+---------+
+CCOONNFFOORRMMIINNGG TTOO
+       POSIX.1-2001, POSIX.1-2008, C89.
+
+EEXXAAMMPPLLEESS
+       The program below demonstrates the use of ffrreeaadd() by parsing /bin/sh ELF executable in binary mode and printing its magic and class:
+
+           $ ..//aa..oouutt
+           ELF magic: 0x7f454c46
+           Class: 0x02
+
+   PPrrooggrraamm ssoouurrccee
+
+       #include <stdio.h>
+       #include <stdlib.h>
+
+       #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+       int
+       main(void)
+       {
+           FILE *fp = fopen("/bin/sh", "rb");
+           if (!fp) {
+               perror("fopen");
+               return EXIT_FAILURE;
+           }
+
+           unsigned char buffer[4];
+
+           size_t ret = fread(buffer, ARRAY_SIZE(buffer), sizeof(*buffer), fp);
+           if (ret != sizeof(*buffer)) {
+               fprintf(stderr, "fread() failed: %zu\n", ret);
+               exit(EXIT_FAILURE);
+           }
+
+           printf("ELF magic: %#04x%02x%02x%02x\n", buffer[0], buffer[1],
+                  buffer[2], buffer[3]);
+
+           ret = fread(buffer, 1, 1, fp);
+           if (ret != 1) {
+               fprintf(stderr, "fread() failed: %zu\n", ret);
+               exit(EXIT_FAILURE);
+           }
+
+           printf("Class: %#04x\n", buffer[0]);
+
+           fclose(fp);
+
+           exit(EXIT_SUCCESS);
+       }
+
+SSEEEE AALLSSOO
+       rreeaadd(2), wwrriittee(2), ffeeooff(3), ffeerrrroorr(3), uunnlloocckkeedd__ssttddiioo(3)
+
+CCOOLLOOPPHHOONN
+       This page is part of release 5.10 of the Linux _m_a_n_-_p_a_g_e_s project.  A description of the project, information about reporting  bugs,  and  the
+       latest version of this page, can be found at https://www.kernel.org/doc/man-pages/.
+
+GNU                                                                  2020-08-13                                                             FREAD(3)
