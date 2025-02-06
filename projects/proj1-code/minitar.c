@@ -263,11 +263,58 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
 }
 
 int get_archive_file_list(const char *archive_name, file_list_t *files) {
-    // TODO: Not yet implemented
+    if (archive_name == NULL || files == NULL) {
+        printf("Invalid arguments to get_archive_file_list\n");
+        return -1;
+    }
+
+    FILE *archive = fopen(archive_name, "r");
+    if (archive == NULL) {
+        perror("Error opening archive");
+        return -1;
+    }
+
+    file_list_init(files);
+
+    while (1) {
+        tar_header header;
+        if (fread(&header, 1, sizeof(header), archive) != sizeof(header)) {
+            break;
+        }
+
+        if (header.name[0] == '\0') {    // Updating single file in archive
+            break;
+        }
+
+        if (file_list_add(files, header.name) != 0) {
+            perror("Error adding file to list");
+            fclose(archive);
+            file_list_clear(files);
+            return -1;
+        }
+
+        int file_size = 0;
+        sscanf(header.size, "%o", &file_size);
+
+        int blocks_to_skip = 0;
+        int remaining_size = file_size;
+
+        while (remaining_size > 0) {
+            if (remaining_size > BLOCK_SIZE) {
+                remaining_size -= BLOCK_SIZE;
+            } else {
+                remaining_size = 0;
+            }
+            blocks_to_skip += BLOCK_SIZE;
+        }
+
+        fseek(archive, blocks_to_skip, SEEK_CUR);
+    }
+
+    fclose(archive);
     return 0;
 }
 
 int extract_files_from_archive(const char *archive_name) {
-    // TODO: Not yet implemented
     return 0;
 }

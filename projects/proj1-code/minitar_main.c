@@ -56,7 +56,6 @@ int main(int argc, char **argv) {
             return 1;
         }
 
-        printf("Files in archive '%s':\n", archive_name);    // Corrected printf statement
         node_t *current = archive_files.head;
         while (current != NULL) {
             printf("  %s\n", current->name);
@@ -92,15 +91,13 @@ int main(int argc, char **argv) {
             file_list_clear(&archive_files);
             return 1;
         }
-
-        printf("Files updated successfully.\n");
         file_list_clear(&archive_files);
     } else if (strcmp(op, "-x") == 0) {
         if (extract_files_from_archive(archive_name) == -1) {
             printf("Error: Failed to extract files from archive '%s'.\n", archive_name);
             return 1;
         }
-        printf("Files extracted successfully.\n");
+
     } else {
         printf("Unknown command, try again\n");
         file_list_clear(&files);
