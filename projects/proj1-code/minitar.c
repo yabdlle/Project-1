@@ -317,7 +317,7 @@ int get_archive_file_list(const char *archive_name, file_list_t *files) {
 
 int extract_files_from_archive(const char *archive_name) {
     if (archive_name == NULL) {
-        fprintf(stderr, "Error: Invalid archive name\n");
+        perror("Invalid archive name");
         return -1;
     }
 
@@ -327,26 +327,18 @@ int extract_files_from_archive(const char *archive_name) {
         return -1;
     }
 
-    // Create a list to track latest file versions
     file_list_t extracted_files;
     file_list_init(&extracted_files);
 
-    while (1) {
-        tar_header header;
-
-        // Read TAR header (512 bytes)
-        if (fread(&header, 1, sizeof(header), archive) != sizeof(header)) {
-            break;    // Reached end of archive
-        }
-
-        if (header.name[0] == '\0') {    // End-of-archive marker
+    tar_header header;
+    while (fread(&header, 1, sizeof(header), archive) == sizeof(header)) {
+        if (header.name[0] == '\0') {
             break;
         }
 
-        int file_size = 0;
-        sscanf(header.size, "%o", &file_size);    // Convert octal size to integer
+        int file_size;
+        sscanf(header.size, "%o", &file_size);
 
-        // Check if the file already exists in extracted list (keep the latest version)
         if (file_list_contains(&extracted_files, header.name)) {
             fseek(archive, ((file_size + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE, SEEK_CUR);
             continue;
@@ -356,20 +348,26 @@ int extract_files_from_archive(const char *archive_name) {
         if (out_file == NULL) {
             perror("Error creating output file");
             fclose(archive);
+            file_list_clear(&extracted_files);
             return -1;
         }
 
-        // Read & Write file contents in 512-byte blocks
         char buffer[BLOCK_SIZE];
         int remaining_size = file_size;
         while (remaining_size > 0) {
-            size_t to_read = (remaining_size > BLOCK_SIZE) ? BLOCK_SIZE : remaining_size;
+            int to_read = BLOCK_SIZE;
+            if (remaining_size < BLOCK_SIZE) {
+                to_read = remaining_size;
+            }
+
             if (fread(buffer, 1, BLOCK_SIZE, archive) != BLOCK_SIZE) {
                 perror("Error reading archive contents");
                 fclose(out_file);
                 fclose(archive);
+                file_list_clear(&extracted_files);
                 return -1;
             }
+
             fwrite(buffer, 1, to_read, out_file);
             remaining_size -= BLOCK_SIZE;
         }
