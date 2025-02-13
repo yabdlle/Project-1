@@ -122,15 +122,8 @@ int remove_trailing_bytes(const char *file_name, size_t nbytes) {
     }
     return 0;
 }
-/*
- * Create a new archive file with the name 'archive_name'.
- * The archive should contain all files stored in the 'files' list.
- * You can assume in this project that at least one member file is specified.
- * You may also assume that all the elements of 'files' exist.
- * If an archive of the specified name already exists, you should overwrite it
- * with the result of this operation.
- * This function should return 0 upon success or -1 if an error occurred
- */
+
+// creates a new archive files from given files
 int create_archive(const char *archive_name, const file_list_t *files) {
     // opening archive in write mode, if exists fopen overwrites
     FILE *wr = fopen(archive_name, "w");
@@ -175,38 +168,49 @@ int create_archive(const char *archive_name, const file_list_t *files) {
         char buffer[BLOCK_SIZE] = {0};    // declaring buffer to read file contents in 512 bB
         size_t bytes_read;
         while ((bytes_read = fread(buffer, 1, BLOCK_SIZE, f)) > 0) {
-            fwrite(buffer, 1, BLOCK_SIZE, wr);    // write exactly 512 bytes to archive
+            if (fwrite(buffer, 1, BLOCK_SIZE, wr) != BLOCK_SIZE) { // write exactly 512 bytes to archive
+                perror("Failed to write file data");
+                fclose(f);
+                fclose(wr);
+                return -1;
+            }
             memset(buffer, 0, BLOCK_SIZE);        // clears buffer after write to avoid leftover
         }
         fclose(f);
         cur = cur->next;    // on to the next file
     }
 
-    //
     char emptyBlock[BLOCK_SIZE] = {0};        // creating a block of 512 bytes of zeros
-    fwrite(emptyBlock, 1, BLOCK_SIZE, wr);    // Write first empty block (TAR format requirement).
-    fwrite(emptyBlock, 1, BLOCK_SIZE,
-           wr);    // Write second empty block to signal the end of the archive.
+    if (fwrite(emptyBlock, 1, BLOCK_SIZE, wr) != BLOCK_SIZE) {  // Write first empty block (TAR format requirement)
+        perror("Failed to write end of archive blocks");
+        fclose(wr);
+        return -1;
+    }
+    if (fwrite(emptyBlock, 1, BLOCK_SIZE, wr) != BLOCK_SIZE) { // Write second empty block to
+        perror("Failed to write end of archive blocks");      // signal the end of the archive.
+        fclose(wr);
+        return -1;
+    }
 
     fclose(wr);
     return 0;
 }
 
+// Append each file specified in 'files' to the archive
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    // TODO: Not yet implemented
     FILE *wr = fopen(archive_name, "a");
     if (wr == NULL) {
         perror("failed to open archive");
         return -1;
     }
     // seeking last two blocks
-    if (fseek(wr, -2 * BLOCK_SIZE, SEEK_END) != 0) {    // seek the last 2 bB
+    if (fseek(wr, -2 * BLOCK_SIZE, SEEK_END) != 0) {    // seek the last 2 byte Blocks
         perror("Error: Failed to append files to archive.");
         fclose(wr);
         return -1;
     }
 
-    // now remove last two bB
+    // now remove last two byte Blocks
     if (remove_trailing_bytes(archive_name, 2 * BLOCK_SIZE) != 0) {
         perror("failed to remove trailing bB");
         fclose(wr);
@@ -215,11 +219,11 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
 
     node_t *cur = files->head;
     while (cur != NULL) {
-        if (strcmp(cur->name, archive_name) == 0) {    // if file exist, dont overwrite
+        if (strcmp(cur->name, archive_name) == 0) {    // if file exist, don't overwrite
             cur = cur->next;
             continue;
         }
-        FILE *toRead = fopen(cur->name, "r");
+        FILE *toRead = fopen(cur->name, "r"); //open to read each file
         if (toRead == NULL) {
             perror("failed to read cur file");
             cur = cur->next;
@@ -246,7 +250,12 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
         char buffer[BLOCK_SIZE] = {0};    // declaring buffer to read file contents in 512 bB
         size_t bytes_read;
         while ((bytes_read = fread(buffer, 1, BLOCK_SIZE, toRead)) > 0) {
-            fwrite(buffer, 1, BLOCK_SIZE, wr);    // write exactly 512 bytes to archive
+            if (fwrite(buffer, 1, BLOCK_SIZE, wr) != BLOCK_SIZE) {  // write exactly 512 bytes to archive
+                perror("Failed to write file contents");
+                fclose(toRead);
+                fclose(wr);
+                return -1;
+            }
             memset(buffer, 0, BLOCK_SIZE);        // clears buffer after write to avoid leftover
         }
         fclose(toRead);
@@ -254,9 +263,17 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
     }
 
     char emptyBlock[BLOCK_SIZE] = {0};        // creating a block of 512 bytes of zeros
-    fwrite(emptyBlock, 1, BLOCK_SIZE, wr);    // Write first empty block (TAR format requirement).
-    fwrite(emptyBlock, 1, BLOCK_SIZE,
-           wr);    // Write second empty block to signal the end of the archive.
+    if (fwrite(emptyBlock, 1, BLOCK_SIZE, wr) != BLOCK_SIZE) { // Write first empty block (TAR format requirement).
+        perror("Failed to write first empty block");
+        fclose(wr);
+        return -1;
+    }
+
+    if (fwrite(emptyBlock, 1, BLOCK_SIZE, wr) != BLOCK_SIZE) { // Write second empty block to signal the end of the archive.
+        perror("Failed to write second empty block");
+        fclose(wr);
+        return -1;
+    }
 
     fclose(wr);
     return 0;
