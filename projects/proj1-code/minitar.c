@@ -193,14 +193,17 @@ int create_archive(const char *archive_name, const file_list_t *files) {
 }
 
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
-    // TODO: Not yet implemented
+    if (archive_name == NULL || files == NULL) {
+        perror("Invalid args");
+        return -1;
+    }
     FILE *wr = fopen(archive_name, "a");
     if (wr == NULL) {
-        perror("failed to open archive");
+        perror("Failed to open archive");
         return -1;
     }
     // seeking last two blocks
-    if (fseek(wr, -2 * BLOCK_SIZE, SEEK_END) != 0) {    // seek the last 2 bB
+    if (fseek(wr, -2 * BLOCK_SIZE, SEEK_END) != 0) {
         perror("Error: Failed to append files to archive.");
         fclose(wr);
         return -1;
@@ -263,11 +266,13 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
 }
 
 int get_archive_file_list(const char *archive_name, file_list_t *files) {
+    // Check for valid arguments
     if (archive_name == NULL || files == NULL) {
-        printf("Invalid arguments to get_archive_file_list\n");
+        printf("Invalid args");
         return -1;
     }
 
+    // Open the archive for reading
     FILE *archive = fopen(archive_name, "r");
     if (archive == NULL) {
         perror("Error opening archive");
@@ -279,13 +284,15 @@ int get_archive_file_list(const char *archive_name, file_list_t *files) {
     while (1) {
         tar_header header;
         if (fread(&header, 1, sizeof(header), archive) != sizeof(header)) {
+            break;    // End of archive
+        }
+
+        // Stop if we reach an empty header (end of archive)
+        if (header.name[0] == '\0') {
             break;
         }
 
-        if (header.name[0] == '\0') {    // Updating single file in archive
-            break;
-        }
-
+        // Add file name to the list
         if (file_list_add(files, header.name) != 0) {
             perror("Error adding file to list");
             fclose(archive);
@@ -294,21 +301,24 @@ int get_archive_file_list(const char *archive_name, file_list_t *files) {
         }
 
         int file_size = 0;
-        sscanf(header.size, "%o", &file_size);
-
-        int blocks_to_skip = 0;
-        int remaining_size = file_size;
-
-        while (remaining_size > 0) {
-            if (remaining_size > BLOCK_SIZE) {
-                remaining_size -= BLOCK_SIZE;
-            } else {
-                remaining_size = 0;
-            }
-            blocks_to_skip += BLOCK_SIZE;
+        // Parse file size from octal format
+        if (sscanf(header.size, "%o", &file_size) != 1) {
+            perror("Error parsing file size");
+            fclose(archive);
+            file_list_clear(files);
+            return -1;
         }
 
-        fseek(archive, blocks_to_skip, SEEK_CUR);
+        // Calc the number of 512-byte blocks needed ie [n/2]
+        int blocks_to_skip = (file_size + 511) / 512;
+
+        // Skip past file contents
+        if (fseek(archive, blocks_to_skip * BLOCK_SIZE, SEEK_CUR) != 0) {
+            perror("Error skipping file block");
+            fclose(archive);
+            file_list_clear(files);
+            return -1;
+        }
     }
 
     fclose(archive);
@@ -317,66 +327,103 @@ int get_archive_file_list(const char *archive_name, file_list_t *files) {
 
 int extract_files_from_archive(const char *archive_name) {
     if (archive_name == NULL) {
-        perror("Invalid archive name");
+        perror("Invalid archive filename");
         return -1;
     }
 
+    // Open the archive for reading
     FILE *archive = fopen(archive_name, "r");
     if (archive == NULL) {
-        perror("Error opening archive");
+        perror("Error opening archive file");
         return -1;
     }
 
+    // Initialize the list to track extracted files
     file_list_t extracted_files;
     file_list_init(&extracted_files);
 
     tar_header header;
+
+    // Iterate through each file entry in the archive
     while (fread(&header, 1, sizeof(header), archive) == sizeof(header)) {
         if (header.name[0] == '\0') {
-            break;
+            break;    // End of archive (null terminator)
         }
 
-        int file_size;
-        sscanf(header.size, "%o", &file_size);
-
-        if (file_list_contains(&extracted_files, header.name)) {
-            fseek(archive, ((file_size + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE, SEEK_CUR);
-            continue;
+        // Read file size from header (stored in octal format)
+        int file_size = 0;
+        if (sscanf(header.size, "%o", &file_size) != 1) {
+            perror("Error reading file size from header");
+            file_list_clear(&extracted_files);
+            fclose(archive);
+            return -1;
         }
 
+        // Open the output file for writing (overwrite if exists)
         FILE *out_file = fopen(header.name, "w");
         if (out_file == NULL) {
             perror("Error creating output file");
-            fclose(archive);
             file_list_clear(&extracted_files);
+            fclose(archive);
             return -1;
         }
 
         char buffer[BLOCK_SIZE];
         int remaining_size = file_size;
+
+        // Read and write file data in chunks
         while (remaining_size > 0) {
-            int to_read = BLOCK_SIZE;
-            if (remaining_size < BLOCK_SIZE) {
-                to_read = remaining_size;
+            int chunk_size;    // Ensure data fits in 512 blocks if not use remaining size
+            if (remaining_size > BLOCK_SIZE) {
+                chunk_size = BLOCK_SIZE;
+            } else {
+                chunk_size = remaining_size;    // Handle final bytes
             }
 
-            if (fread(buffer, 1, BLOCK_SIZE, archive) != BLOCK_SIZE) {
-                perror("Error reading archive contents");
+            // Read chunk from archive
+            if (fread(buffer, 1, chunk_size, archive) != chunk_size) {
+                perror("Error reading archive data");
                 fclose(out_file);
-                fclose(archive);
                 file_list_clear(&extracted_files);
+                fclose(archive);
                 return -1;
             }
 
-            fwrite(buffer, 1, to_read, out_file);
-            remaining_size -= BLOCK_SIZE;
+            // Write chunk to output file (overwrite old version)
+            if (fwrite(buffer, 1, chunk_size, out_file) != chunk_size) {
+                perror("Error writing to output file");
+                fclose(out_file);
+                file_list_clear(&extracted_files);
+                fclose(archive);
+                return -1;
+            }
+
+            remaining_size -= chunk_size;
         }
 
-        fclose(out_file);
-        file_list_add(&extracted_files, header.name);
-    }
+        fclose(out_file);    // Close the extracted file
 
+        // Add file to extracted list (ensuring latest version is written)
+        if (file_list_add(&extracted_files, header.name) != 0) {
+            perror("Error tracking extracted file");
+            file_list_clear(&extracted_files);
+            fclose(archive);
+            return -1;
+        }
+
+        // Align archive pointer to 512-byte blocks
+        int blocks_needed = (file_size + 511) / 512;    // Ensures [file_size / 512]
+        int padding = (blocks_needed * 512) - file_size;
+
+        if (fseek(archive, padding, SEEK_CUR) != 0) {
+            perror("Error seeking archive");
+            file_list_clear(&extracted_files);
+            fclose(archive);
+            return -1;
+        }
+    }
     file_list_clear(&extracted_files);
     fclose(archive);
+
     return 0;
 }
