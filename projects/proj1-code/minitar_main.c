@@ -1,3 +1,5 @@
+/*partners worked on this project: Abdirahman Hassan (hassa878) and Youssef Abdulle (abdul664)*/
+
 #include <stdio.h>
 #include <string.h>
 
