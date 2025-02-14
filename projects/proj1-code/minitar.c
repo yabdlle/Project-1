@@ -129,7 +129,7 @@ int create_archive(const char *archive_name, const file_list_t *files) {
     FILE *wr = fopen(archive_name, "w");
     // error check
     if (wr == NULL) {
-        perror("failed to open file");
+        perror("Failed to open file");
         return -1;
     }
 
@@ -144,7 +144,7 @@ int create_archive(const char *archive_name, const file_list_t *files) {
         FILE *f = fopen(cur->name, "r");
         // error check
         if (f == NULL) {
-            perror("failed to open a file");
+            perror("Failed to open a file");
             cur = cur->next;
             continue;
         }
@@ -158,7 +158,7 @@ int create_archive(const char *archive_name, const file_list_t *files) {
         }
         // Writing the header to the archive (512 bytes)
         if (fwrite(&header, 1, sizeof(tar_header), wr) < 0) {
-            perror("failed to write header to file");
+            perror("Failed to write header to file");
             fclose(f);
             fclose(wr);
             return -1;
@@ -192,7 +192,10 @@ int create_archive(const char *archive_name, const file_list_t *files) {
         return -1;
     }
 
-    fclose(wr);
+    if (fclose(wr) != 0) {
+        perror("Failed to close archive file");
+        return -1;
+    }
     return 0;
 }
 
@@ -200,7 +203,7 @@ int create_archive(const char *archive_name, const file_list_t *files) {
 int append_files_to_archive(const char *archive_name, const file_list_t *files) {
     FILE *wr = fopen(archive_name, "a");
     if (wr == NULL) {
-        perror("failed to open archive");
+        perror("Failed to open archive");
         return -1;
     }
     // seeking last two blocks
@@ -212,7 +215,7 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
 
     // now remove last two byte Blocks
     if (remove_trailing_bytes(archive_name, 2 * BLOCK_SIZE) != 0) {
-        perror("failed to remove trailing bB");
+        perror("Failed to remove trailing bB");
         fclose(wr);
         return -1;
     }
@@ -225,7 +228,7 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
         }
         FILE *toRead = fopen(cur->name, "r"); //open to read each file
         if (toRead == NULL) {
-            perror("failed to read cur file");
+            perror("Failed to read cur file");
             cur = cur->next;
             continue;
         }
@@ -240,7 +243,7 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
 
         // Writing the header to the archive (512 bytes)
         if (fwrite(&header, 1, sizeof(tar_header), wr) < 0) {
-            perror("failed to write header to file");
+            perror("Failed to write header to file");
             fclose(toRead);
             fclose(wr);
             return -1;
@@ -275,7 +278,10 @@ int append_files_to_archive(const char *archive_name, const file_list_t *files) 
         return -1;
     }
 
-    fclose(wr);
+    if (fclose(wr) != 0) {
+        perror("Failed to close archive file");
+        return -1;
+    }
     return 0;
 }
 
